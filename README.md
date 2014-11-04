@@ -12,8 +12,10 @@ fix that.
 
 You'll need libusb-1.0-dev, gcc and pkg-config. Just run 
 
+```
 make 
 sudo make install
+```
 
 pl2303gpio comes with udev rules that will be dropped into your
 /etc/udev/rules.d/
@@ -29,6 +31,7 @@ Nope, you can't. Patches welcome.
 
 ## Using
 
+```
 pl2303gpio --help
 PL2303HXA userspace GPIO control tool
 (c) Andrew 'Necromant' Andrianov 2014, License: GPLv3
@@ -42,6 +45,7 @@ Options are:
 Examples: 
         ./pl2303gpio --gpio=1 --out 1
         ./pl2303gpio --gpio=0 --out 0 --gpio=1 --in
+```
 
 ## License
 
