@@ -126,6 +126,7 @@ static struct option long_options[] =
 	{"gpio",    required_argument, 0, 'g'},
 	{"in",      optional_argument, 0, 'i'},
 	{"out",     required_argument, 0, 'o'},
+	{"sleep",   required_argument, 0, 's'},
 	{"read",    no_argument,       0, 'r'},
 	{0, 0, 0, 0}
 };
@@ -140,10 +141,14 @@ void usage(const char *self)
 	       "\t -i/--in       - configure GPIO as input\n"
 	       "\t -o/--out v    - configure GPIO as output with value v\n"
 	       "\t -r/--read v   - Read current GPIO value\n\n"
+	       "\t -s/--sleep v  - Delay for v ms\n\n"
 	       "Examples: \n"
 	       "\t%s --gpio=1 --out 1\n"
-	       "\t%s --gpio=0 --out 0 --gpio=1 --in\n"
-	       "\n", self, self, self);
+	       "\t%s --gpio=0 --out 0 --gpio=1 --in\n\n"
+	       "All arguments are executed from left to right, you can add \n"
+	       "delays using --sleep v option. e.g. \n"
+	       "\t%s --gpio=0 --out 0 --sleep 1000 --gpio=0 --out 1\n"
+	       "\n", self, self, self, self);
 }
 
 extern usb_dev_handle *nc_usb_open(int vendor, int product, char *vendor_name, char *product_name, char *serial);
@@ -177,7 +182,7 @@ int main(int argc, char* argv[])
 	while(1) {
 		int option_index = 0;
 
-		c = getopt_long (argc, argv, "hg:i:o:r:",
+		c = getopt_long (argc, argv, "hg:i:o:r:s:",
 				 long_options, &option_index);
 
 		/* Detect the end of the options. */
@@ -209,6 +214,12 @@ int main(int argc, char* argv[])
 			if (optarg)
 				v = atoi(optarg);
 			gpio_out(h, gpio, v); 
+			break;
+		}
+		case 's':
+		{
+			unsigned long n = atoi(optarg);
+			usleep(n*1000);
 			break;
 		}
 		case 'r': 
