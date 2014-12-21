@@ -159,8 +159,8 @@ void check_handle(usb_dev_handle **h)
 
 	/* TODO: Make a proper way to select different PL2303 devices. */
 	*h = nc_usb_open(I_VENDOR_NUM, I_PRODUCT_NUM, NULL, NULL, NULL);
-	if (!h) {
-		fprintf(stderr, "No PL2303 USB device found ;(\n");
+	if (!(*h)) {
+		fprintf(stderr, "No PL2303 USB device %04x:%04x found ;(\n", I_VENDOR_NUM, I_PRODUCT_NUM);
 		exit(1);
 	}
 
@@ -231,9 +231,5 @@ int main(int argc, char* argv[])
 
 		}
 	}
-
 	return 0;
-
-	//GP0 == LDR
-	//GP1 == RST
 }
