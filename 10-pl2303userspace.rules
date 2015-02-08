@@ -1,5 +1,5 @@
 # PL2303 rules to allow userspace access to the dongle
 # Copy this file to /etc/udev/rules.d, reload udev rules and replug
 
-SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="67b", ATTR{idProduct}=="2303", GROUP="users", MODE="0666"
-
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="67b",  ATTR{idProduct}=="2303", GROUP="users", MODE="0666"
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="10c4", ATTR{idProduct}=="ea60", GROUP="users", MODE="0666"
