@@ -1,0 +1,67 @@
+#!/bin/bash
+#Usage: serverctl action [servername] [minicom args]
+
+
+DEVDIR=/sys/bus/usb/devices/
+DELAY=2500
+list_servers() {
+    ls $DEVDIR | while read line; do
+	if [ "`ls ${DEVDIR}/${line}/|grep tty|wc -l`" != "0" ]; then
+	    tty="`ls ${DEVDIR}/${line}/|grep tty`"
+	    base="`echo $line|cut -f1 -d:`"
+	    m="`cat ${DEVDIR}/${base}/manufacturer`"
+	    p="`cat ${DEVDIR}/${base}/product`"
+	    s="`cat ${DEVDIR}/${base}/serial`"
+	    echo "$line;$base;$tty;$m;$p;$s"
+	fi
+    done
+}
+
+action=$1
+node=$2
+
+check_node() { 
+    if [ "`list_servers|grep $node|wc -l`" -eq "0" ]; then
+	echo "No such node: $node" 
+	exit 1
+    fi
+}
+
+case $action in
+    "list")
+	list_servers|while read line; do
+	echo $line|awk -F";" '{print "/dev/"$3": "$4"  "$5"  "$6 }'
+	done
+	;;
+    "reboot")
+	check_node
+	cp2103gpio --serial=$node --gpio=3 --out=0 --sleep $DELAY --out=1
+	;;
+    "off")
+	check_node
+	cp2103gpio --serial=$node --gpio=3 --out=0
+	;;
+    "on")
+	check_node
+	cp2103gpio --serial=$node --gpio=3 --out=0
+	;;
+    "term")
+	check_node
+	shift
+	shift
+	miniargs=$*
+	[ -z "$*" ] && miniargs="-b 115200"
+	tty=/dev/`list_servers|cut -d";" -f3`
+	minicom -o -D $tty $miniargs
+	;;
+    *)
+	echo "Server control utility"
+	echo "Usage: $0 action node"
+	echo "Valid actions are: "
+	echo "                   list"
+	echo "                   reboot"
+	echo "                   shutdown"
+	echo "                   poweron"
+	echo "                   term"
+	;;
+esac
