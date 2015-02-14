@@ -1,14 +1,7 @@
 #!/usr/bin/lua
 
-
---TODO: host.conf
-hosts = { 
-   {"192.168.0.1", "windblade"},
-   {"192.168.0.20", "iceblade"},
-}
-sleep_interval=1
-
---dofile("/etc/serverd.conf")
+-- Read the config
+dofile("/etc/serverd.conf")
 
 function gpio(host, n,o)
    local str="cp2103gpio --serial="..host.." --gpio="..n.." --out="..o

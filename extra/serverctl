@@ -51,7 +51,7 @@ case $action in
 	shift
 	miniargs=$*
 	[ -z "$*" ] && miniargs="-b 115200"
-	tty=/dev/`list_servers|cut -d";" -f3`
+	tty=/dev/`list_servers|grep $node|cut -d";" -f3`
 	minicom -o -D $tty $miniargs
 	;;
     *)
@@ -60,8 +60,8 @@ case $action in
 	echo "Valid actions are: "
 	echo "                   list"
 	echo "                   reboot"
-	echo "                   shutdown"
-	echo "                   poweron"
+	echo "                   on"
+	echo "                   off"
 	echo "                   term"
 	;;
 esac

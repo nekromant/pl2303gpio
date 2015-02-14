@@ -18,4 +18,12 @@ clean:
 install: pl2303gpio cp2103gpio
 	cp pl2303gpio $(PREFIX)/bin
 	cp cp2103gpio $(PREFIX)/bin
-	cp 10-pl2303userspace.rules /etc/udev/rules.d
+
+install-rules:	
+	cp 10-pl2303_cp210x_userspace.rules /etc/udev/rules.d
+	udevadm control --reload-rules
+
+install-scripts:
+	cp extra/serverctl   $(PREFIX)/bin/
+	cp extra/serverd.lua $(PREFIX)/bin/
+	cp etc/serverd.conf  $(PREFIX)/etc/
