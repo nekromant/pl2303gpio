@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <usb.h>
-#include <libusb.h>
 
 static int did_usb_init = 0;
 
