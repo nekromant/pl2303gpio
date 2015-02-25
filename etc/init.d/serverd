@@ -1,0 +1,25 @@
+#!/bin/sh /etc/rc.common
+# ServerD daemon
+# Copyright (C) 2015 Andrew 'Necromant' Andrianov
+ 
+START=10
+STOP=15
+
+start() { 
+        cd /
+        exec >/dev/null
+        exec 2>/dev/null
+        (
+        trap "" TERM
+        /usr/bin/serverd.lua
+        ) &        
+        #setsid "/usr/bin/fastbootd $FILE" >/dev/null 2>&1 < /dev/null &
+        # commands to launch application
+}                 
+ 
+stop() {          
+        killall serverd.lua
+        # commands to kill application 
+}
+
+
