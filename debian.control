@@ -1,0 +1,12 @@
+Source: pl2303gpio
+Section: main
+Priority: optional
+Maintainer: Andrew Andrianov <spam@ncrmnt.org>
+Build-Depends: debhelper (>= 4.1.16), libusb
+
+Package: pl2303gpio
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Tools to control pl2303 and cp2103 gpio lines
+ Small, hacky, but get the job done
+
