@@ -91,7 +91,7 @@ void gpio_write_reg(libusb_device_handle *h, uint16_t reg)
 		reg,              // wIndex
 		0,             // pointer to destination buffer
 		0,  // wLength
-		6000
+		1000
 		);
 	handle_error(bytes);
 }

@@ -50,7 +50,7 @@ char gpio_read_reg(libusb_device_handle *h)
 		0,              // wIndex
 		&buf,             // pointer to destination buffer
 		1,  // wLength
-		100
+		1000
 		);
 	handle_error(bytes);
 	return buf;
@@ -66,7 +66,7 @@ void gpio_write_reg(libusb_device_handle *h, unsigned char reg)
 		reg,              // wIndex
 		0,             // pointer to destination buffer
 		0,  // wLength
-		6000
+		1000
 		);
 	handle_error(bytes);
 	

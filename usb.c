@@ -72,6 +72,7 @@ void check_handle(libusb_device_handle **h, int vid, int pid, const char* manuf,
 	if (*h)
 		return;
 	libusb_init(NULL);
+	libusb_set_debug(NULL, LIBUSB_LOG_LEVEL_WARNING);
 	*h = ncusb_find_and_open(NULL, vid, pid, manuf, product, serial);
 	if (!(*h)) {
 		fprintf(stderr, "No PL2303 USB device %04x:%04x found ;(\n", vid, pid);
