@@ -9,18 +9,19 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <usb.h>
+#include <libusb.h>
 #include <getopt.h>
 
 
 #define _GNU_SOURCE
 #include <getopt.h>
 
-
-void check_handle(usb_dev_handle **h, const char* manuf, const char* product, const char* serial);
-int gpio_read(usb_dev_handle *h, int gpio);
-void gpio_in(usb_dev_handle *h, int gpio, int pullup);
-void gpio_out(usb_dev_handle *h, int gpio, int value);
+int get_device_vid();
+int get_device_pid();
+void check_handle(libusb_device_handle **h, int vid, int pid, const char* manuf, const char* product, const char* serial);
+int gpio_read(libusb_device_handle *h, int gpio);
+void gpio_in(libusb_device_handle *h, int gpio, int pullup);
+void gpio_out(libusb_device_handle *h, int gpio, int value);
 
 
 void handle_error(int ret)
@@ -73,7 +74,7 @@ void usage(const char *self)
 int main(int argc, char* argv[])
 {
 	char c;
-	usb_dev_handle *h = NULL;
+	libusb_device_handle *h = NULL;
 	int gpio=0; 
 	const char *product = NULL; 
 	const char *manuf = NULL;
@@ -114,7 +115,7 @@ int main(int argc, char* argv[])
 		case 'i':
 		{
 			int v=0; 
-			check_handle(&h, manuf, product, serial);
+			check_handle(&h, get_device_vid(), get_device_pid(), manuf, product, serial);
 			if (optarg)
 				v = atoi(optarg);
 			gpio_in(h, gpio, v); 
@@ -123,7 +124,7 @@ int main(int argc, char* argv[])
 		case 'o':
 		{
 			int v=0; 
-			check_handle(&h, manuf, product, serial);
+			check_handle(&h, get_device_vid(), get_device_pid(), manuf, product, serial);
 			if (optarg)
 				v = atoi(optarg);
 			gpio_out(h, gpio, v); 
@@ -137,7 +138,7 @@ int main(int argc, char* argv[])
 		}
 		case 'r': 
 		{
-			check_handle(&h, manuf, product, serial);
+			check_handle(&h, get_device_vid(), get_device_pid(), manuf, product, serial);
 			printf("%d\n", gpio_read(h, gpio) ? 1 : 0); 
 			break;
 		}

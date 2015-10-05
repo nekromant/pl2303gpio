@@ -9,7 +9,7 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <usb.h>
+#include <libusb.h>
 #include <getopt.h>
 
 
@@ -28,12 +28,21 @@
 #define VENDOR_WRITE_REQUEST		0x01
 
 
+int get_device_vid()
+{
+	return I_VENDOR_NUM;
+}
+
+int get_device_pid()
+{
+	return I_PRODUCT_NUM;
+}
 
 /* Get current GPIO register from PL2303 */
-char gpio_read_reg(usb_dev_handle *h)
+char gpio_read_reg(libusb_device_handle *h)
 {
 	char buf;
-	int bytes = usb_control_msg(
+	int bytes = libusb_control_transfer(
 		h,             // handle obtained with usb_open()
 		VENDOR_READ_REQUEST_TYPE, // bRequestType
 		VENDOR_READ_REQUEST,      // bRequest
@@ -47,9 +56,9 @@ char gpio_read_reg(usb_dev_handle *h)
 	return buf;
 }
 
-void gpio_write_reg(usb_dev_handle *h, unsigned char reg)
+void gpio_write_reg(libusb_device_handle *h, unsigned char reg)
 {
-	int bytes = usb_control_msg(
+	int bytes = libusb_control_transfer(
 		h,             // handle obtained with usb_open()
 		VENDOR_WRITE_REQUEST_TYPE, // bRequestType
 		VENDOR_WRITE_REQUEST,      // bRequest
@@ -80,7 +89,7 @@ int gpio_val_shift(int gpio) {
 }
 
 
-void gpio_out(usb_dev_handle *h, int gpio, int value)
+void gpio_out(libusb_device_handle *h, int gpio, int value)
 {
 	int shift_dir = gpio_dir_shift(gpio);
  	int shift_val = gpio_val_shift(gpio);
@@ -91,7 +100,7 @@ void gpio_out(usb_dev_handle *h, int gpio, int value)
 	gpio_write_reg(h, reg);
 }
 
-void gpio_in(usb_dev_handle *h, int gpio, int pullup)
+void gpio_in(libusb_device_handle *h, int gpio, int pullup)
 {
 	int shift_dir = gpio_dir_shift(gpio);
  	int shift_val = gpio_val_shift(gpio);
@@ -103,22 +112,10 @@ void gpio_in(usb_dev_handle *h, int gpio, int pullup)
 	gpio_write_reg(h, reg);
 }
 
-int gpio_read(usb_dev_handle *h, int gpio)
+int gpio_read(libusb_device_handle *h, int gpio)
 {
 	unsigned char r = gpio_read_reg(h);
 	int shift = gpio_val_shift(gpio);
 	return (r & (1<<shift));
 }
 
-extern usb_dev_handle *nc_usb_open(int vendor, int product, char *vendor_name, char *product_name, char *serial);
-void check_handle(usb_dev_handle **h, const char* manuf, const char* product, const char* serial)
-{
-	if (*h)
-		return;
-
-	*h = nc_usb_open(I_VENDOR_NUM, I_PRODUCT_NUM, manuf, product, serial);
-	if (!(*h)) {
-		fprintf(stderr, "No PL2303 USB device %04x:%04x found ;(\n", I_VENDOR_NUM, I_PRODUCT_NUM);
-		exit(1);
-	}
-}

@@ -3,94 +3,78 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <usb.h>
-
-static int did_usb_init = 0;
+#include <libusb.h>
 
 
-static int  usb_get_string_ascii(usb_dev_handle *dev, int index, int langid, char *buf, int buflen)
+
+
+static int ncusb_match_string(libusb_device_handle *dev, int index, const char* string)
 {
-	char    buffer[256];
-	int     rval, i;
-	
-	if((rval = usb_control_msg(dev, 
-				   USB_ENDPOINT_IN, 
-				   USB_REQ_GET_DESCRIPTOR, 
-				   (USB_DT_STRING << 8) + index, 
-				   langid, buffer, sizeof(buffer), 
-				   1000)) < 0)
-		return rval;
-	if(buffer[1] != USB_DT_STRING)
-		return 0;
-	if((unsigned char)buffer[0] < rval)
-		rval = (unsigned char)buffer[0];
-	rval /= 2;
-	/* lossy conversion to ISO Latin1 */
-	for(i=1; i<rval; i++) {
-		if(i > buflen)  /* destination buffer overflow */
-			break;
-		buf[i-1] = buffer[2 * i];
-		if(buffer[2 * i + 1] != 0)  /* outside of ISO Latin1 range */
-			buf[i-1] = '?';
-	}
-	buf[i-1] = 0;
-	return i-1;
-}
-
-
-int usb_match_string(usb_dev_handle *handle, int index, char* string)
-{
-	char tmp[256];
+	unsigned char tmp[256];
+	libusb_get_string_descriptor_ascii(dev, index, tmp, 256);
 	if (string == NULL)
 		return 1; /* NULL matches anything */
-	usb_get_string_ascii(handle, index, 0x409, tmp, 256);
-	return (strcmp(string,tmp)==0);
+	return (strcmp(string, (char*) tmp)==0);
 }
 
-usb_dev_handle *usb_check_device(struct usb_device *dev,
-				 char *vendor_name, 
-				 char *product_name, 
-				 char *serial)
+
+struct libusb_device_handle *ncusb_find_and_open(struct libusb_context *ctx,
+					  int vendor, int product,
+					  const char *vendor_name,
+					  const char *product_name,
+					  const char *serial)
 {
-	usb_dev_handle      *handle = usb_open(dev);
-	if(!handle) {
-		fprintf(stderr, "Warning: cannot open USB device: %s\n", usb_strerror());
+	libusb_device_handle *found = NULL;
+	libusb_device **list;
+	ssize_t cnt = libusb_get_device_list(ctx, &list);
+	ssize_t i = 0;
+
+	if (cnt < 0){
 		return NULL;
 	}
-	if (
-		usb_match_string(handle, dev->descriptor.iManufacturer, vendor_name) &&
-		usb_match_string(handle, dev->descriptor.iProduct,      product_name) &&
-		usb_match_string(handle, dev->descriptor.iSerialNumber, serial)
-		) {
-		return handle;
-	}
-	usb_close(handle);
-	return NULL;
-	
-}
 
-usb_dev_handle *nc_usb_open(int vendor, int product, char *vendor_name, char *product_name, char *serial)
-{
-	struct usb_bus      *bus;
-	struct usb_device   *dev;
-	usb_dev_handle      *handle = NULL;
-	
-	if(!did_usb_init++)
-		usb_init();
+	for(i = 0; i < cnt; i++) {
+		int err = 0;
+		libusb_device *device = list[i];
+		struct libusb_device_descriptor desc;
+		libusb_device_handle *handle;
+		err = libusb_open(device, &handle);
+		if (err)
+			continue;
 
-	usb_find_busses();
-	usb_find_devices();
-
-	for(bus=usb_get_busses(); bus; bus=bus->next) {
-		for(dev=bus->devices; dev; dev=dev->next) {
-			            if(dev->descriptor.idVendor == vendor && 
-				       dev->descriptor.idProduct == product) {
-					    handle = usb_check_device(dev, vendor_name, product_name, serial);
-					    if (handle)
-						    return handle;
-				    }
+		int r = libusb_get_device_descriptor( device, &desc );
+		if (r) {
+			libusb_close(handle);
+			continue;
 		}
+
+		if ( desc.idVendor == vendor && desc.idProduct == product &&
+		     ncusb_match_string(handle, desc.iManufacturer, vendor_name) &&
+		     ncusb_match_string(handle, desc.iProduct,      product_name) &&
+		     ncusb_match_string(handle, desc.iSerialNumber, serial)
+			)
+		{
+			found = handle;
+		}
+
+		if (found)
+			break;
+
 	}
-	return NULL;
+	libusb_free_device_list(list, 1);
+
+	return found;
 }
 
+
+void check_handle(libusb_device_handle **h, int vid, int pid, const char* manuf, const char* product, const char* serial)
+{
+	if (*h)
+		return;
+	libusb_init(NULL);
+	*h = ncusb_find_and_open(NULL, vid, pid, manuf, product, serial);
+	if (!(*h)) {
+		fprintf(stderr, "No PL2303 USB device %04x:%04x found ;(\n", vid, pid);
+		exit(1);
+	}
+}

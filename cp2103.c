@@ -9,9 +9,9 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <usb.h>
 #include <getopt.h>
 #include <stdint.h>
+#include <libusb.h>
 
 #define _GNU_SOURCE
 #include <getopt.h>
@@ -36,6 +36,17 @@
 
 
 
+
+int get_device_vid()
+{
+	return I_VENDOR_NUM;
+}
+
+int get_device_pid()
+{
+	return I_PRODUCT_NUM;
+}
+
 //GPIO_READ
 //ret = cp210x_ctlmsg(port, 0xff, 0xc0, 0x00c2, 0, gpio, 1);
 //type c0
@@ -46,10 +57,10 @@
 
 
 /* Get current GPIO register from PL2303 */
-char gpio_read_reg(usb_dev_handle *h)
+char gpio_read_reg(libusb_device_handle *h)
 {
 	char buf;
-	int bytes = usb_control_msg(
+	int bytes = libusb_control_transfer(
 		h,             // handle obtained with usb_open()
 		0xc0, // bRequestType
 		0xff,      // bRequest
@@ -70,9 +81,9 @@ char gpio_read_reg(usb_dev_handle *h)
 //index gpioreg
 //data NULL
 //len 0
-void gpio_write_reg(usb_dev_handle *h, uint16_t reg)
+void gpio_write_reg(libusb_device_handle *h, uint16_t reg)
 {
-	int bytes = usb_control_msg(
+	int bytes = libusb_control_transfer(
 		h,             // handle obtained with usb_open()
 		0x40, // bRequestType
 		0xff,      // bRequest
@@ -86,7 +97,7 @@ void gpio_write_reg(usb_dev_handle *h, uint16_t reg)
 }
 
 
-void gpio_out(usb_dev_handle *h, int gnum, int value)
+void gpio_out(libusb_device_handle *h, int gnum, int value)
 {
 
 	uint16_t gpio = 0;
@@ -115,27 +126,13 @@ void gpio_out(usb_dev_handle *h, int gnum, int value)
 	gpio_write_reg(h, gpio);
 }
 
-void gpio_in(usb_dev_handle *h, int gpio, int pullup)
+void gpio_in(libusb_device_handle *h, int gpio, int pullup)
 {
 	printf("FixMe: don't know how to make pins input on cp2103\n");
 }
 
-int gpio_read(usb_dev_handle *h, int gpio)
+int gpio_read(libusb_device_handle *h, int gpio)
 {
 	printf("FixMe: don't know how to read pins on cp2103\n");
 }
 
-
-extern usb_dev_handle *nc_usb_open(int vendor, int product, 
-				   const char *vendor_name, const char *product_name, const char *serial);
-void check_handle(usb_dev_handle **h, const char* manuf, const char* product, const char* serial)
-{
-	if (*h)
-		return;
-
-	*h = nc_usb_open(I_VENDOR_NUM, I_PRODUCT_NUM, manuf, product, serial);
-	if (!(*h)) {
-		fprintf(stderr, "No CP2103 USB device %04x:%04x found ;(\n", I_VENDOR_NUM, I_PRODUCT_NUM);
-		exit(1);
-	}
-}
