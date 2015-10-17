@@ -73,7 +73,7 @@ void usage(const char *self)
 
 int main(int argc, char* argv[])
 {
-	char c;
+	int c;
 	libusb_device_handle *h = NULL;
 	int gpio=0; 
 	const char *product = NULL; 
