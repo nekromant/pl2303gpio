@@ -1,0 +1,34 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+PROJECT(libusbgpio)
+SET(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+FIND_PACKAGE(PkgConfig)
+PKG_CHECK_MODULES(LIBUSB REQUIRED libusb-1.0)
+
+INCLUDE_DIRECTORIES(
+    ${LIBUSB_INCLUDE_DIRS}
+)
+
+ADD_EXECUTABLE(pl2303gpio
+    pl2303.c main.c usb.c
+)
+
+TARGET_LINK_LIBRARIES(pl2303gpio
+    ${LIBUSB_LIBRARIES}
+)
+
+ADD_EXECUTABLE(cp2103gpio
+    cp2103.c main.c usb.c
+)
+
+TARGET_LINK_LIBRARIES(cp2103gpio
+    ${LIBUSB_LIBRARIES}
+)
+
+INSTALL(TARGETS cp2103gpio pl2303gpio
+       DESTINATION bin)
+        
+INSTALL(FILES 10-pl2303_cp210x_userspace.rules
+        DESTINATION /etc/udev/rules.d/)
+
+#INSTALL(CODE "execute_process(COMMAND udevadm control --reload-rules)")
