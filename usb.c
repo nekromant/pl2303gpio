@@ -57,7 +57,7 @@ void ncusb_device_list(struct libusb_context *ctx,
 			libusb_get_string_descriptor_ascii(handle, desc.iSerialNumber, serial, 256);
 			libusb_get_string_descriptor_ascii(handle, desc.iProduct, product, 256);
 			printf("Port %d: Manuf: '%s' Product: '%s' Serial: '%s'\n", 
-				port, manuf, serial, product);
+				port, manuf, product, serial);
 		}
 
 	}
