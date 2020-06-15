@@ -3,17 +3,20 @@ LDFLAGS = $(shell pkg-config --libs libusb-1.0)
 
 PREFIX?=/usr/local
 
-all: pl2303gpio cp2103gpio
+all: pl2303gpio pl2303gcgpio cp2103gpio
 
 OBJS=usb.c main.c
 pl2303gpio: $(OBJS) pl2303.o
+	$(CC) $(CFLAGS) -Wall -Werror -I"../include" -o $(@) $(^) $(LDFLAGS)
+
+pl2303gcgpio: $(OBJS) pl2303gc.o
 	$(CC) $(CFLAGS) -Wall -Werror -I"../include" -o $(@) $(^) $(LDFLAGS)
 
 cp2103gpio: $(OBJS) cp2103.o
 	$(CC) $(CFLAGS) -Wall -Werror -I"../include" -o $(@) $(^) $(LDFLAGS)
 
 clean:
-	-rm pl2303gpio cp2103gpio
+	-rm pl2303gpio pl2303gcgpio cp2103gpio
 
 install: pl2303gpio cp2103gpio
 	cp pl2303gpio $(PREFIX)/bin
