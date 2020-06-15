@@ -27,7 +27,67 @@
 #define VENDOR_WRITE_REQUEST_TYPE	0x40
 #define VENDOR_WRITE_REQUEST		0x01
 
+struct pl2303_pinctrl{
+	uint16_t reg_read_mask;
 
+	uint16_t dir_reg;
+	uint8_t dir_mask; //out mode: set with mask. input mode: clean with mask
+
+	uint16_t in_reg;
+	uint8_t in_mask;
+
+	uint16_t out_reg;
+	uint8_t out_mask;
+};
+
+
+struct pl2303_pinctrl pins[] = {
+	{0x80, 0x01, 0x10, 0x01, 0x40, 0x01, 0x40},
+	{0x80, 0x01, 0x20, 0x01, 0x80, 0x01, 0x80},
+	{0x80, 0x0C, 0x03, 0x0D, 0x01, 0x0D, 0x01},
+	{0x80, 0x0C, 0x0C, 0x0D, 0x02, 0x0D, 0x02},
+};
+
+#define PINS_MAX	(sizeof(pins)/sizeof(*pins))
+
+//internal api
+unsigned char pl2303_read_reg(libusb_device_handle *h, unsigned short reg)
+{
+	unsigned char value;
+	int bytes = libusb_control_transfer(
+		h,             // handle obtained with usb_open()
+		VENDOR_READ_REQUEST_TYPE, // bRequestType
+		VENDOR_READ_REQUEST,      // bRequest
+		reg,           // wValue
+		0,             // wIndex
+		&value,        // pointer to destination buffer
+		1,             // wLength
+		1000
+		);
+	handle_error(bytes);
+	//fprintf(stderr, "read reg[0x%02x] = 0x%02x\n", reg ,value);
+	return value;
+}
+
+
+void pl2303_write_reg(libusb_device_handle *h, unsigned short reg, unsigned char value)
+{
+	int bytes = libusb_control_transfer(
+		h,             // handle obtained with usb_open()
+		VENDOR_WRITE_REQUEST_TYPE, // bRequestType
+		VENDOR_WRITE_REQUEST,      // bRequest
+		reg,           // wValue
+		value,         // wIndex
+		0,             // pointer to destination buffer
+		0,             // wLength
+		1000
+		);
+	//fprintf(stderr, write reg[0x%02x] = 0x%02x\n", reg ,value);
+	handle_error(bytes);
+}
+
+
+//export API
 int get_device_vid()
 {
 	return I_VENDOR_NUM;
@@ -38,84 +98,56 @@ int get_device_pid()
 	return I_PRODUCT_NUM;
 }
 
-/* Get current GPIO register from PL2303 */
-char gpio_read_reg(libusb_device_handle *h)
-{
-	char buf;
-	int bytes = libusb_control_transfer(
-		h,             // handle obtained with usb_open()
-		VENDOR_READ_REQUEST_TYPE, // bRequestType
-		VENDOR_READ_REQUEST,      // bRequest
-		0x0081,              // wValue
-		0,              // wIndex
-		&buf,             // pointer to destination buffer
-		1,  // wLength
-		1000
-		);
-	handle_error(bytes);
-	return buf;
-}
-
-void gpio_write_reg(libusb_device_handle *h, unsigned char reg)
-{
-	int bytes = libusb_control_transfer(
-		h,             // handle obtained with usb_open()
-		VENDOR_WRITE_REQUEST_TYPE, // bRequestType
-		VENDOR_WRITE_REQUEST,      // bRequest
-		1,              // wValue
-		reg,              // wIndex
-		0,             // pointer to destination buffer
-		0,  // wLength
-		1000
-		);
-	handle_error(bytes);
-	
-}
-
-int gpio_dir_shift(int gpio) {
-	if (gpio == 0) 
-		return 4;
-	if (gpio == 1) 
-		return 5;
-	return 4; /* default to 0 */
-}
-
-int gpio_val_shift(int gpio) {
-	if (gpio == 0) 
-		return 6;
-	if (gpio == 1) 
-		return 7;
-	return 6; /* default to 0 */
-}
-
-
 void gpio_out(libusb_device_handle *h, int gpio, int value)
 {
-	int shift_dir = gpio_dir_shift(gpio);
- 	int shift_val = gpio_val_shift(gpio);
-	unsigned char reg = gpio_read_reg(h);
-	reg |= (1 << shift_dir);
-	reg &= ~(1 << shift_val);
-	reg |= (value << shift_val);
-	gpio_write_reg(h, reg);
+	unsigned char reg_value;
+
+	if(0 <= gpio && gpio < PINS_MAX){
+		//direct
+		reg_value = pl2303_read_reg(h, pins[gpio].dir_reg | pins[gpio].reg_read_mask);
+		reg_value |= pins[gpio].dir_mask;
+		pl2303_write_reg(h, pins[gpio].dir_reg, reg_value);
+
+		//out
+		reg_value = pl2303_read_reg(h, pins[gpio].out_reg | pins[gpio].reg_read_mask);
+
+		if(!!value){
+			reg_value |= pins[gpio].out_mask;
+		} else {
+			reg_value &= ~pins[gpio].out_mask;
+		}
+		pl2303_write_reg(h, pins[gpio].out_reg, reg_value);
+	} else {
+		fprintf(stderr, "Error: gpio%d is not support\n", gpio);
+		exit(1);
+	}
 }
 
 void gpio_in(libusb_device_handle *h, int gpio, int pullup)
 {
-	int shift_dir = gpio_dir_shift(gpio);
- 	int shift_val = gpio_val_shift(gpio);
+	unsigned char reg_value;
 
-	unsigned char reg = gpio_read_reg(h);
-	reg &= ~(1 << shift_dir);
-	reg &= ~(1 << shift_val);
-	reg |= (pullup << shift_val);
-	gpio_write_reg(h, reg);
+	if(0 <= gpio && gpio < PINS_MAX){
+		//direct
+		reg_value = pl2303_read_reg(h, pins[gpio].dir_reg | pins[gpio].reg_read_mask);
+		reg_value &= ~pins[gpio].dir_mask;
+		pl2303_write_reg(h, pins[gpio].dir_reg, reg_value);
+	} else {
+		fprintf(stderr, "Error: gpio%d is not support\n", gpio);
+		exit(1);
+	}
 }
 
 int gpio_read(libusb_device_handle *h, int gpio)
 {
-	unsigned char r = gpio_read_reg(h);
-	int shift = gpio_val_shift(gpio);
-	return (r & (1<<shift));
-}
+	unsigned char reg_value;
 
+	if(0 <= gpio && gpio < PINS_MAX){
+		//in
+		reg_value = pl2303_read_reg(h, pins[gpio].in_reg | pins[gpio].reg_read_mask);
+		return !!(reg_value &= pins[gpio].in_mask);
+	} else {
+		fprintf(stderr, "Error: gpio%d is not support\n", gpio);
+		exit(1);
+	}
+}
