@@ -39,10 +39,9 @@ static struct option long_options[] =
 	/* These options set a flag. */
 	{"help",    no_argument,             0, 'h'},
 	{"gpio",    required_argument,       0, 'g'},
-	{"in",      optional_argument,       0, 'i'},
+	{"in",      no_argument,             0, 'i'},
 	{"out",     required_argument,       0, 'o'},
 	{"sleep",   required_argument,       0, 's'},
-	{"read",    no_argument,             0, 'r'},
 	{"product", required_argument,       0, 'p'},
 	{"port",    required_argument,       0, 'P'},
 	{"manuf",   required_argument,       0, 'm'},
@@ -62,9 +61,8 @@ void usage(const char *self)
 	       "\t --manuf=blah      - Use device with this 'manufacturer' string\n"
 	       "\t -P/--port  N      - Use only device in physical port N\n"
 	       "\t -g/--gpio  n      - select GPIO, n=0, 1\n"
-	       "\t -i/--in           - configure GPIO as input\n"
+	       "\t -i/--in           - configure GPIO as input and read value\n"
 	       "\t -o/--out v        - configure GPIO as output with value v\n"
-	       "\t -r/--read v       - Read current GPIO value\n\n"
 	       "\t -s/--sleep v      - Delay for v ms\n\n"
 	       "\t -l/--list         - List candidates\n\n"		   
 	       "Examples: \n"
@@ -93,7 +91,7 @@ int main(int argc, char* argv[])
 	while(1) {
 		int option_index = 0;
 
-		c = getopt_long (argc, argv, "hg:i:o:r:s:lP:",
+		c = getopt_long (argc, argv, "hg:io:s:lP:",
 				 long_options, &option_index);
 
 		/* Detect the end of the options. */
@@ -128,9 +126,8 @@ int main(int argc, char* argv[])
 		{
 			int v=0; 
 			check_handle(&h, get_device_vid(), get_device_pid(), manuf, product, serial, port);
-			if (optarg)
-				v = atoi(optarg);
 			gpio_in(h, gpio, v); 
+			printf("%d\n", gpio_read(h, gpio) ? 1 : 0);
 			break;
 		}
 		case 'o':
@@ -146,12 +143,6 @@ int main(int argc, char* argv[])
 		{
 			unsigned long n = atoi(optarg);
 			usleep(n*1000);
-			break;
-		}
-		case 'r': 
-		{
-			check_handle(&h, get_device_vid(), get_device_pid(), manuf, product, serial, port);
-			printf("%d\n", gpio_read(h, gpio) ? 1 : 0); 
 			break;
 		}
 
